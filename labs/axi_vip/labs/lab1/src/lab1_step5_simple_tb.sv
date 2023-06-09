@@ -23,7 +23,7 @@ import ex_sim_axi_vip_mst_0_pkg::*;
 import ex_sim_axi_vip_slv_0_pkg::*;
 import ex_sim_axi_vip_passthrough_0_pkg::*;
 
-module axi_vip_0_lab1_tb(
+module axi_vip_0_lab_tb(
   );
 
   typedef enum {
@@ -302,7 +302,7 @@ module axi_vip_0_lab1_tb(
     *  2.4 generate an no backpressure rready signal  
     *  2.5 generate an no backpressure bready signal  
     ***********************************************************************************************/
-    axi_vip_0_lab1_tb.DUT.ex_sim_i.axi_vip_passthrough.inst.set_master_mode();
+    axi_vip_0_lab_tb.DUT.ex_sim_i.axi_vip_passthrough.inst.set_master_mode();
     exdes_state = EXDES_PASSTHROUGH_MASTER;
     passthrough_mem_agent.set_agent_tag("Passthrough VIP in Master mode");
     passthrough_mem_agent.start_master();

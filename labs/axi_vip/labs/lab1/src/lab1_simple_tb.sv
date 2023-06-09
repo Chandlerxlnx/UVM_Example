@@ -23,7 +23,7 @@ import ex_sim_axi_vip_mst_0_pkg::*;
 import ex_sim_axi_vip_slv_0_pkg::*;
 import ex_sim_axi_vip_passthrough_0_pkg::*;
 
-module axi_vip_0_lab1_tb(
+module axi_vip_0_lab_tb(
   );
 
   typedef enum {

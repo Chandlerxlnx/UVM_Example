@@ -43,7 +43,7 @@ module axi_vip_0_lab_tb(
   * master VIP agent verbosity level
   ***********************************************************************************************/
   xil_axi_uint                           mst_agent_verbosity = 0;
-  xil_axi_uint                           mem_agent_verbosity = 0;
+  xil_axi_uint                           slv_mem_agent_verbosity = 0;
   xil_axi_uint                           passthrough_agent_verbosity = 0;
 
   /*************************************************************************************************  
@@ -59,11 +59,33 @@ module axi_vip_0_lab_tb(
   * more details please refer PG267 for more details
   ***********************************************************************************************/
   ex_sim_axi_vip_mst_0_mst_t                                      mst_agent;
-  ex_sim_axi_vip_slv_0_slv_mem_t                                  mem_agent;
+  ex_sim_axi_vip_slv_0_slv_mem_t                                  slv_mem_agent;
   ex_sim_axi_vip_passthrough_0_passthrough_mem_t                  passthrough_mem_agent;
 
+  //+--------------------------------------------------------------------------------------
+  // step 3 defines memory model
+   xil_axi_uint                                              addr_rand;
+  /************************************************************************************************
+  * Declare payload, address, data and strobe for back door memory write/read
+  * xil_axi_ulong                                           mem_wr_addr;
+  * xil_axi_ulong                                           mem_rd_addr;
+  * bit[DATA_WIDTH-1:0]                                     mem_wr_data;
+  * bit[(DATA_WIDTH/8)-1:0]                                 mem_wr_strb;
+  * bit[DATA_WIDTH-1:0]                                     mem_rd_data;
+  * bit[DATA_WIDTH-1:0]                                     mem_fill_payload;
+  ***********************************************************************************************/
+
+  xil_axi_ulong                                             mem_wr_addr;
+  xil_axi_ulong                                             mem_rd_addr;
+  bit[32-1:0]                                mem_wr_data;
+  bit[(32/8)-1:0]                            mem_wr_strb;
+  bit[32-1:0]                                mem_rd_data;
+  bit[32-1:0]                                mem_fill_payload;
   
-     
+  xil_axi_payload_byte                                      byte_mem[xil_axi_ulong];
+  xil_axi_uint                                              error_cnt =0;
+
+  //********************************************************************************************/   
   // Clock signal
   bit                                     clock;
   // Reset signal
@@ -97,30 +119,73 @@ module axi_vip_0_lab_tb(
     ***********************************************************************************************/
     $display("=========Debug, step 2 New agent======");
     mst_agent = new("master vip agent",DUT.ex_sim_i.axi_vip_mst.inst.IF);
-    mem_agent = new("slave vip agent with memory model",DUT.ex_sim_i.axi_vip_slv.inst.IF);
+    slv_mem_agent = new("slave vip agent with memory model",DUT.ex_sim_i.axi_vip_slv.inst.IF);
     passthrough_mem_agent = new("passthrough vip agent with memory model",DUT.ex_sim_i.axi_vip_passthrough.inst.IF);
     $timeformat (-12, 1, " ps", 1);
     /*************************************************************************************************  
     * set tag for agents for easy debug,if not set here, it will be hard to tell which driver is filing 
     * if multiple agents are called in one testbench
     ***********************************************************************************************/
-    $display("======= Debug: agent set_agent_tags");
+    $display("=============\n Debug: agent set_agent_tags");
     mst_agent.set_agent_tag("Master VIP");
-    mem_agent.set_agent_tag("Slave VIP");
+    slv_mem_agent.set_agent_tag("Slave VIP");
     passthrough_mem_agent.set_agent_tag("Passthrough VIP");
     // set print out verbosity level.
     mst_agent.set_verbosity(mst_agent_verbosity);
-    mem_agent.set_verbosity(mem_agent_verbosity);
+    slv_mem_agent.set_verbosity(slv_mem_agent_verbosity);
     passthrough_mem_agent.set_verbosity(passthrough_agent_verbosity);
     /*************************************************************************************************  
     * master,slave agents start to run 
     * turn monitor on passthrough agent
     ***********************************************************************************************/
     mst_agent.start_master();
-    mem_agent.start_slave();
+    slv_mem_agent.start_slave();
     passthrough_mem_agent.start_monitor();
+    $display("Debug: agents have been started");
     /*************************************************************************************************/
-    $display("Debug: step2 agent started");
-    // -end step 2
+    // -end step 2 backdoor read/write memory
+   
+    error_cnt = 0;
+    addr_rand = 0;
+    slv_mem_agent.mem_model.pre_load_mem("compile.sh", addr_rand);
+    byte_compare("compile.sh",addr_rand);
+
+    #10;
+
+    write_memory_to_binary("compile.sh_cp",addr_rand);
+    /***********************************************************************************************
+    * Backdoor memory tasks
+    * 1.fill fixed default value to memory 
+    *    user can choose task set_mem_default_value_fixed or set_mem_default_value_rand
+    *    in this testcase the former is being used
+    * 2. do a backdoor memory write
+    * 3. do a backdoor memory read
+    ***********************************************************************************************/
+    mem_fill_payload = 1;
+    set_mem_default_value_fixed(mem_fill_payload); // Call task to do fill in memory with default fixed value
+    mem_wr_data = 20;
+    mem_wr_addr= 0;
+    mem_wr_strb = 1;
+    backdoor_mem_write(mem_wr_addr, mem_wr_data, mem_wr_strb); //Call task to do back doore memory wirte
+    mem_rd_addr =0;
+    backdoor_mem_read(mem_rd_addr, mem_rd_data);   // Call task to do back door memory read
+  
+    multiple_write_transaction_partial_rand(20,0);
+    mst_agent.wait_drivers_idle();
+    backdoor_read_compare(20,0);
+    #10;
+    #1ns;
+    if(error_cnt ==0) begin
+      $display("EXAMPLE TEST DONE : Test Completed Successfully");
+    end else begin  
+      $display("EXAMPLE TEST DONE ",$sformatf("Test Failed: %d Comparison Failed", error_cnt));
+    end 
+    $finish();
+   //-step 2 no backpressure ready done
+   //----------------------------------------------------------------------------------------------------
+   
  end   
+ 
+ `include "vip_memory.inc"
+ 
 endmodule
