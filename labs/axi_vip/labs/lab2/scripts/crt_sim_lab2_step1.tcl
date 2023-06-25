@@ -1,5 +1,5 @@
 create_project -force proj_lab proj_lab -part xc7s25csga225-1Q
-source ../script/crt_bd_ex_sim.tcl
+source ../scripts/crt_bd_ex_sim.tcl
 update_compile_order -fileset sources_1
 make_wrapper -files [get_files ex_sim.bd] -top -import
 create_fileset -simset lab_step1
@@ -16,4 +16,5 @@ generate_target Simulation [get_files ex_sim.bd]
 export_ip_user_files -of_objects [get_files ex_sim.bd] -no_script -sync -force -quiet
 #export_simulation -of_objects [get_files ex_sim.bd] -use_ip_compiled_libs -force -quiet
 export_simulation  -use_ip_compiled_libs -force -quiet
+update_compile_order -fileset [current_fileset]
 launch_simulation
