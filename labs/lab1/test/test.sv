@@ -5,6 +5,7 @@ program automatic test;
 
 	`include "uvm_macros.svh"
 
+	`include "my_transaction.sv"
 	`include "my_sequence.sv"
 	`include "my_monitor.sv"
 	`include "my_driver.sv"

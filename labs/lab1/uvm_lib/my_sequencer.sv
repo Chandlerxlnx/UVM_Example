@@ -1,4 +1,4 @@
-class my_sequencer extends uvm_sequencer #(my_transaction, my_transaction_rsp);
+class my_sequencer extends uvm_sequencer #(my_transaction);//DEBUG,Chandler, remove rsp ahead, my_transaction_rsp);
 
  
 
